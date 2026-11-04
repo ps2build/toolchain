@@ -1,0 +1,76 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-native-linux:
+    if: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      PS2DEV: ${{ github.workspace }}/../ps2dev-native
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential texinfo bison flex autoconf automake libtool \
+            libgmp-dev libmpfr-dev libmpc-dev zlib1g-dev zip
+      - name: Build IOP
+        working-directory: iop
+        run: bash build.sh
+      - name: Build EE
+        working-directory: ee
+        run: bash build.sh
+      - name: Verify toolchain
+        run: |
+          test -x "$PS2DEV/ee/bin/mips64r5900el-ps2-elf-gcc"
+          test -x "$PS2DEV/iop/bin/mipsel-none-elf-gcc"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-linux-toolchain
+          path: ${{ env.PS2DEV }}
+          retention-days: 1
+
+  build-windows-cross:
+    if: false
+    needs: build-native-linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      PS2DEV: ${{ github.workspace }}/../ps2dev-win
+      NATIVE: ${{ github.workspace }}/../ps2dev-native
+      PS2_CROSS_HOST: x86_64-w64-mingw32
+      PS2_NATIVE_EE_TOOLS: ${{ github.workspace }}/../ps2dev-native/ee
+      PS2_NATIVE_IOP_TOOLS: ${{ github.workspace }}/../ps2dev-native/iop
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential texinfo bison flex autoconf automake libtool \
+            libgmp-dev libmpfr-dev libmpc-dev zlib1g-dev curl ca-certificates \
+            gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-tools zip
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-linux-toolchain
+          path: ${{ env.NATIVE }}
+      - name: Restore executable permissions
+        run: scripts/restore-exec-bits.sh "$NATIVE"
+      - name: Build EE
+        working-directory: ee
+        run: |
+          mkdir -p "$PS2DEV/ee"
+          cp -r "$NATIVE/ee/mips64r5900el-ps2-elf" "$PS2DEV/ee/mips64r5900el-ps2-elf"
+          bash build.sh 1 6
+      - name: Build IOP
+        working-directory: iop
+        run: bash build.sh 1 2
+      - name: Verify toolchain
+        run: |
+          file "$PS2DEV/ee/bin/mips64r5900el-ps2-elf-gcc.exe" | grep -q 'PE32+'
+          file "$PS2DEV/iop/bin/mipsel-none-elf-gcc.exe" | grep -q 'PE32+'
