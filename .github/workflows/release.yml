@@ -8,6 +8,7 @@ on:
 
 jobs:
   build-native-linux:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 300
     env:
@@ -37,6 +38,7 @@ jobs:
           retention-days: 1
 
   package-linux:
+    if: false
     needs: build-native-linux
     runs-on: ubuntu-latest
     permissions:
@@ -60,6 +62,7 @@ jobs:
           files: ps2-toolchain-*-linux-amd64.zip
 
   build-windows-cross:
+    if: false
     needs: build-native-linux
     runs-on: ubuntu-latest
     timeout-minutes: 300
@@ -104,6 +107,7 @@ jobs:
           retention-days: 1
 
   package-windows:
+    if: false
     needs: build-windows-cross
     runs-on: ubuntu-latest
     permissions:
