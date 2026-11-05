@@ -17,7 +17,9 @@ rm -rf "build-$TARGET"
 mkdir "build-$TARGET"
 cd "build-$TARGET"
 
-# gdb uses an implicit this capture that GCC 16+ flags under -Werror
+# gdb uses an implicit this capture that GCC 16+ flags under -Werror; newer Clang flags readelf.c's
+# overflow-check idiom (ptr + len < ptr) under -Werror=tautological-compare
+CFLAGS="-Wno-error=tautological-compare" \
 CXXFLAGS="-Wno-error=deprecated" \
 ../configure \
   --quiet \

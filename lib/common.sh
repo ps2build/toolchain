@@ -34,7 +34,7 @@ fetch_source() {
   git -C "$REPO_FOLDER" checkout -f FETCH_HEAD
 }
 
-# prepare_build_env: puts already-built target bin/ dirs on PATH, enables ccache, forces static host binaries.
+# prepare_build_env: puts already-built target bin/ dirs on PATH, enables ccache, forces static host binaries on Linux.
 prepare_build_env() {
   if test -n "$PS2DEV"; then
     export PATH="$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PATH"
@@ -44,8 +44,11 @@ prepare_build_env() {
     export PATH="/usr/local/ccache-links:$PATH"
   fi
 
-  export LDFLAGS="-static ${LDFLAGS:-}"
-  export LDFLAGS_FOR_BUILD="-static ${LDFLAGS_FOR_BUILD:-}"
+  # macOS has no static libSystem/crt0.o, so -static fails every host-compiler link check (configure: "C compiler cannot create executables").
+  if test "$(uname -s)" = "Linux"; then
+    export LDFLAGS="-static ${LDFLAGS:-}"
+    export LDFLAGS_FOR_BUILD="-static ${LDFLAGS_FOR_BUILD:-}"
+  fi
 }
 
 check_dependencies() {
@@ -62,14 +65,31 @@ check_dependencies() {
   fi
 }
 
-# macos_extra_configure_opts: sets TARG_XTRA_OPTS so configure finds Homebrew/MacPorts gmp, mpfr and mpc.
+# _macos_stage_static_lib <staging-root> <lib-name> <package-prefix>: symlinks only <package-prefix>/lib/lib<lib-name>.a
+# (never the .dylib sitting next to it) and the headers into <staging-root>/<lib-name>, so pointing --with-<lib-name>=
+# there makes the linker statically embed it instead of picking up the Homebrew dylib at the brew-managed path.
+_macos_stage_static_lib() {
+  local root="$1" name="$2" prefix="$3" dest="$1/$2"
+  rm -rf "$dest"
+  mkdir -p "$dest/include" "$dest/lib"
+  ln -s "$prefix"/include/*.h "$dest/include/"
+  ln -s "$prefix/lib/lib$name.a" "$dest/lib/"
+}
+
+# macos_extra_configure_opts: sets TARG_XTRA_OPTS so configure statically links Homebrew/MacPorts gmp, mpfr and mpc
+# (otherwise the host gcc/binutils binaries dynamically depend on those dylibs at their Homebrew path, unlike the
+# fully static Linux host binaries).
 macos_extra_configure_opts() {
   TARG_XTRA_OPTS=""
   if test "$(uname -s)" != "Darwin"; then
     return
   fi
   if command -v brew >/dev/null 2>&1; then
-    TARG_XTRA_OPTS="--with-system-zlib --with-gmp=$(brew --prefix gmp) --with-mpfr=$(brew --prefix mpfr) --with-mpc=$(brew --prefix libmpc)"
+    local static_deps="${TMPDIR:-/tmp}/ps2-toolchain-static-deps"
+    _macos_stage_static_lib "$static_deps" gmp "$(brew --prefix gmp)"
+    _macos_stage_static_lib "$static_deps" mpfr "$(brew --prefix mpfr)"
+    _macos_stage_static_lib "$static_deps" mpc "$(brew --prefix libmpc)"
+    TARG_XTRA_OPTS="--with-system-zlib --with-gmp=$static_deps/gmp --with-mpfr=$static_deps/mpfr --with-mpc=$static_deps/mpc"
   elif command -v port >/dev/null 2>&1; then
     local macports_base
     macports_base="$(dirname "$(port -q contents gmp | grep gmp.h)" | sed 's#/include##')"
