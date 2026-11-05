@@ -9,7 +9,14 @@ scripts/release-linux.sh            # Linux zip in build/release/
 scripts/release-linux.sh --publish  # also tag and create a GitHub release
 ```
 
-Requires Docker. The Windows toolchain is cross-built from Linux with `docker/mingw.Dockerfile`; see [docker/README.md](docker/README.md).
+macOS arm64 builds natively on a Mac with Homebrew (`brew install autoconf automake libtool bison flex texinfo gmp mpfr libmpc zip`):
+
+```bash
+scripts/release-macos.sh v2026.11.05            # build the tag, zip in build/release/
+scripts/release-macos.sh v2026.11.05 --publish  # also upload to that tag's release
+```
+
+The Linux script requires Docker. The Windows toolchain is cross-built from Linux with `docker/mingw.Dockerfile`; see [docker/README.md](docker/README.md).
 
 Each target builds on its own:
 
