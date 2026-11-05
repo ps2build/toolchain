@@ -36,7 +36,7 @@ COPY ee .
 RUN /bin/bash build.sh
 
 ARG VERSION
-ENV VERSION=${VERSION}
+ENV VERSION=${VERSION} PACKAGE_SUFFIX=linux-amd64
 
 RUN apt-get update && apt-get install -y zip && rm -rf /var/lib/apt/lists/*
 

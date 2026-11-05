@@ -9,4 +9,4 @@ mv /staging/ee /staging/iop /staging/toolchain/
 cp /src/LICENSE /staging/toolchain/LICENSE
 
 cd /staging
-zip -r "/out/ps2-toolchain-${VERSION}-linux-amd64.zip" toolchain
+zip -r "/out/ps2-toolchain-${VERSION}-${PACKAGE_SUFFIX}.zip" toolchain

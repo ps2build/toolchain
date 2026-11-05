@@ -56,3 +56,13 @@ COPY --from=ps2-toolchain-glibc /staging/iop/mipsel-none-elf/bin /native-iop-too
 
 RUN /bin/bash build.sh 1
 RUN /bin/bash build.sh 2
+
+COPY scripts /src/scripts
+
+ARG VERSION
+ENV VERSION=${VERSION} PACKAGE_SUFFIX=windows-amd64
+
+RUN apt-get update && apt-get install -y --no-install-recommends zip && rm -rf /var/lib/apt/lists/*
+
+COPY docker/package.sh /package.sh
+CMD ["/package.sh"]
