@@ -1,6 +1,6 @@
 # toolchain
 
-Builds the PlayStation 2 GCC toolchain for Linux and Windows: the EE (Emotion Engine) compiler with newlib and pthread support, and the IOP (I/O Processor) compiler. All binaries are statically linked.
+Builds the PlayStation 2 GCC toolchain for Linux, Windows and macOS: the EE (Emotion Engine) compiler with newlib and pthread support, and the IOP (I/O Processor) compiler. All binaries are statically linked.
 
 ## Build
 
